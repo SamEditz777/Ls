@@ -1,0 +1,46 @@
+=== exp4.txt ===
+SL - 2025  |  Experiment 4
+Title: Packet Sniffing with tcpdump + Wireshark (Ubuntu)
+
+IMPORTANT
+- Use only on networks you own or are authorized to monitor.
+
+PACKAGES
+sudo apt-get update
+sudo apt-get install -y tcpdump wireshark
+
+# (During wireshark install you may be asked whether non-root users may capture—choose based on policy)
+
+1) Discover interfaces
+tcpdump -D
+ip -br a
+
+2) Basic capture (console)
+sudo tcpdump -i any -nn
+
+3) Capture on a specific interface (example enp1s0)
+sudo tcpdump -i enp1s0 -nn
+
+4) Limit number of packets and write to pcap (for Wireshark)
+sudo tcpdump -i enp1s0 -c 50 -w capture.pcap
+
+5) Filters
+- HTTP: sudo tcpdump -i enp1s0 port 80
+- TCP only: sudo tcpdump -i enp1s0 tcp
+- Host: sudo tcpdump -i enp1s0 host 192.168.93.3
+- Source-only: sudo tcpdump -i enp1s0 src 192.168.93.3
+- Destination-only: sudo tcpdump -i enp1s0 dst 192.168.93.3
+
+6) SSH deep capture (hex + ASCII)
+sudo tcpdump -i enp1s0 -x -X -A -nvvv port 22 > ssh.txt
+
+7) Open capture in Wireshark (GUI)
+wireshark capture.pcap
+# In Wireshark, use display filters like "http", "ip.addr == 192.168.93.3", "tcp.port == 22"
+
+TIPS
+- Use `-nn` to stop name resolution (faster / clearer).
+- Use small `-c` counts for short experiments to keep files manageable.
+- Respect privacy: do not exfiltrate packet captures with sensitive data.
+
+END exp4.txt
