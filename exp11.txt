@@ -1,0 +1,36 @@
+=== exp11.txt ===
+SL - 2025  |  Experiment 11
+Title: John the Ripper (Ubuntu) — test account only
+
+ETHICS
+- Crack only your own test account hashes.
+
+INSTALL
+sudo apt-get update && sudo apt-get install -y john
+
+SELF TEST
+john --test
+
+CREATE A TEST USER
+sudo adduser testuser99
+# set a lab-only password (e.g., 123456)
+
+EXTRACT HASH (root)
+sudo getent shadow testuser99 > t1.txt
+cat t1.txt
+
+RUN JOHN
+john t1.txt
+
+SHOW RESULTS
+john --show t1.txt
+
+VERIFY (optional)
+su - testuser99
+# Enter cracked password to confirm it works.
+
+CLEANUP
+sudo deluser --remove-home testuser99
+shred -u t1.txt
+
+END exp11.txt
