@@ -1,0 +1,38 @@
+=== exp10.txt ===
+SL - 2025  |  Experiment 10
+Title: Phishing Awareness (Ubuntu + Firefox) — Safe local demo only
+
+POLICY
+- No instructions for weaponized phishing against real users.
+- Only allowed: closed-lab, explicit consent, dummy accounts, or local-only demos.
+
+LOCAL-ONLY DEMO (safe)
+1) Create a local static HTML demo (no backend)
+mkdir -p ~/phish-demo && cd ~/phish-demo
+cat > index.html << 'EOF'
+<!doctype html><html><body>
+<h3>Demo Login</h3>
+<form>
+  <input name="u" placeholder="Email"><br>
+  <input name="p" type="password" placeholder="Password"><br>
+  <button type="button" onclick="alert('Never enter creds on unknown pages!')">Login</button>
+</form>
+</body></html>
+EOF
+
+2) Serve it locally
+python3 -m http.server 8080
+
+3) Open Firefox and visit
+http://127.0.0.1:8080
+
+TEACHING POINTS (use in viva)
+- Show URL, origin, and HTTPS padlock — padlock ≠ trust.
+- Show how to check certificate details in Firefox.
+- Explain SPF/DKIM/DMARC basics and how email providers flag phishing.
+- Demonstrate password manager behavior and reporting a phish.
+
+ALTERNATIVE (Gophish)
+- Use Gophish only in closed-lab with institutional approval, dummy accounts, and clear consent.
+
+END exp10.txt
