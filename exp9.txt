@@ -1,0 +1,63 @@
+=== exp9.txt ===
+SL - 2025  |  Experiment 9
+Title: IPsec (strongSwan) Transport Mode on Ubuntu (Two-host lab)
+
+TOPOLOGY
+- RED  (host A): 192.168.104.13
+- BLUE (host B): 192.168.104.14
+- Subnet: 192.168.104.0/24
+
+INSTALL
+sudo apt-get update
+sudo apt-get install -y strongswan tcpdump
+
+RED: /etc/ipsec.conf
+conn red-to-blue
+    keyexchange=ikev2
+    type=transport
+    authby=secret
+    left=192.168.104.13
+    right=192.168.104.14
+    ike=aes128-sha1-modp1024!
+    esp=aes128-sha1!
+    auto=route
+
+BLUE: /etc/ipsec.conf
+conn blue-to-red
+    keyexchange=ikev2
+    type=transport
+    authby=secret
+    left=192.168.104.14
+    right=192.168.104.13
+    ike=aes128-sha1-modp1024!
+    esp=aes128-sha1!
+    auto=route
+
+/etc/ipsec.secrets (on both)
+192.168.104.13 192.168.104.14 : PSK "mysecretkey123"
+
+Start strongSwan
+sudo systemctl enable --now strongswan
+sudo ipsec restart
+sudo ipsec status
+
+Bring up connection
+# On RED:
+sudo ipsec up red-to-blue
+# On BLUE:
+sudo ipsec up blue-to-red
+
+Test encrypted ping (RED → BLUE)
+ping 192.168.104.14
+
+Inspect traffic (BLUE)
+sudo tcpdump -i any esp
+
+FIREWALL
+- Ensure UDP 500/4500 and ESP (protocol 50) allowed between the hosts.
+
+TROUBLESHOOT
+- Check ipsec status and logs (journalctl -u strongswan).
+- Matching proposals (ike/esp) must be identical on both ends.
+
+END exp9.txt
