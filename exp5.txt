@@ -1,0 +1,43 @@
+=== exp5.txt ===
+SL - 2025  |  Experiment 5
+Title: Nmap for Network Discovery & Security Auditing (Ubuntu + Firefox tip)
+
+DISCLAIMER
+- Scan only networks/hosts you own or have explicit permission for.
+
+INSTALL
+sudo apt-get update && sudo apt-get install -y nmap
+
+1) Find your IP / subnet
+ip -br a
+# Example: 192.168.96.15 → use 192.168.96.0/24
+
+2) Discover active hosts
+nmap -sn 192.168.96.0/24
+
+3) List all IPs (no probes)
+nmap -sL 192.168.96.0/24
+
+4) Scan a single host
+nmap 192.168.96.10
+
+5) Show only open ports
+nmap --open 192.168.96.10
+
+6) Scan top ports
+nmap --top-ports 5 192.168.96.10
+
+7) Service version detection
+nmap -sV 192.168.96.10
+
+8) OS detection
+sudo nmap -O 192.168.96.10
+
+9) Save output to file
+nmap -sV 192.168.96.10 -oN scan.txt -oX scan.xml
+
+FIREFOX TIP
+- If ports 80/443 are open, open http://<ip> or https://<ip> in Firefox to manually inspect the web app.
+- Use the browser’s developer console and network tab for more context on services discovered.
+
+END exp5.txt
