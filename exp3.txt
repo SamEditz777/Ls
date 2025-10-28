@@ -1,0 +1,57 @@
+=== exp3.txt ===
+SL - 2025  |  Experiment 3
+Title: Host Firewall with iptables (Ubuntu)
+
+IMPORTANT
+- These rules can lock you out. Keep a root console open or test on disposable VM.
+
+PACKAGES
+sudo apt-get update
+sudo apt-get install -y iptables net-tools
+
+1) Inspect current configuration
+sudo iptables -L -n -v
+
+2) Set default deny (strict baseline)
+sudo iptables -P INPUT DROP
+sudo iptables -P FORWARD DROP
+sudo iptables -P OUTPUT DROP
+
+3) Allow established/related traffic (so existing connections remain functional)
+sudo iptables -A INPUT  -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
+sudo iptables -A OUTPUT -m conntrack --ctstate ESTABLISHED -j ACCEPT
+
+4) Allow loopback (local processes)
+sudo iptables -A INPUT  -i lo -j ACCEPT
+sudo iptables -A OUTPUT -o lo -j ACCEPT
+
+5) Allow SSH from a specific trusted admin IP (example)
+sudo iptables -A INPUT -p tcp -s 192.168.1.100 --dport 22 -m conntrack --ctstate NEW -j ACCEPT
+sudo iptables -A OUTPUT -p tcp --sport 22 -m conntrack --ctstate ESTABLISHED -j ACCEPT
+
+6) Allow web server access (80/443) from anywhere
+sudo iptables -A INPUT -p tcp -m multiport --dports 80,443 -m conntrack --ctstate NEW -j ACCEPT
+sudo iptables -A OUTPUT -p tcp -m multiport --sports 80,443 -m conntrack --ctstate ESTABLISHED -j ACCEPT
+
+7) Restrict MySQL to a single admin host
+sudo iptables -A INPUT -p tcp -s 192.168.1.105 --dport 3306 -m conntrack --ctstate NEW -j ACCEPT
+sudo iptables -A OUTPUT -p tcp --sport 3306 -m conntrack --ctstate ESTABLISHED -j ACCEPT
+
+8) Verify rules and counters
+sudo iptables -L -n -v
+
+9) Persist rules (Debian/Ubuntu)
+sudo apt-get install -y iptables-persistent
+sudo netfilter-persistent save
+
+RESET (to remove all and restore permissive rules)
+sudo iptables -F
+sudo iptables -P INPUT ACCEPT
+sudo iptables -P FORWARD ACCEPT
+sudo iptables -P OUTPUT ACCEPT
+
+TIPS
+- Test new rules with local sessions before applying default-deny.
+- When experimenting, add a scheduled rollback (cron) as safety or use a console that doesn't rely on network (e.g., VM console).
+
+END exp3.txt
