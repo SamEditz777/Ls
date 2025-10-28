@@ -1,0 +1,75 @@
+=== exp2.txt ===
+SL - 2025  |  Experiment 2
+Title: Squid Proxy with ACLs + Basic Auth (Ubuntu + Firefox)
+
+IMPORTANT
+- Run on an isolated VM or lab machine.
+- You need sudo privileges.
+- This guide shows how to install Squid, configure ACLs, add a basic-auth user, and configure Firefox to use the proxy.
+
+PACKAGES
+sudo apt-get update
+sudo apt-get install -y squid apache2-utils
+
+1) Check Squid service
+sudo systemctl status squid
+
+2) Backup default config
+sudo cp /etc/squid/squid.conf /etc/squid/squid.conf.bkp
+
+3) Create a cleaned config (optional)
+sudo grep -ve '^#' -ve '^$' /etc/squid/squid.conf.bkp | sudo tee /etc/squid/squid.conf >/dev/null
+
+4) Edit /etc/squid/squid.conf
+sudo nano /etc/squid/squid.conf
+
+Add / confirm these minimum lines (adapt your network CIDR):
+  # ACLs
+  acl localhost src 127.0.0.1/32
+  acl localnet src 192.168.0.0/16   # adjust to your lab subnet
+
+  # Allow local
+  http_access allow localhost
+  http_access allow localnet
+
+  # Authentication (basic NCSA)
+  auth_param basic program /usr/lib/squid/basic_ncsa_auth /etc/squid/passwd
+  auth_param basic realm Squid proxy-caching web server
+  acl ncsa_users proxy_auth REQUIRED
+  http_access allow ncsa_users
+
+  # Optional: block a domain (example)
+  # acl blocked dstdomain .facebook.com
+  # http_access deny blocked
+
+  visible_hostname APSIT-Proxy-Server
+  http_port 3128
+
+Save and exit.
+
+5) Create an auth user
+sudo htpasswd -c /etc/squid/passwd student1
+# enter a password when prompted
+
+6) Restart Squid and verify
+sudo systemctl restart squid
+sudo systemctl status squid
+
+7) Firefox client setup (Ubuntu)
+- Open Firefox → Menu (≡) → Settings
+- Search “Network Settings” → click “Settings…”
+- Choose “Manual proxy configuration”
+- HTTP Proxy: <Squid_VM_IP>  Port: 3128
+- Check “Use this proxy server for all protocols”
+- OK → Visit any website, provide username/password when prompted
+
+8) Verify behaviour & logs
+sudo tail -f /var/log/squid/access.log
+# Look for TCP_DENIED/403 for blocked sites or TCP_DENIED/407 for auth problems.
+
+TROUBLESHOOTING
+- If auth prompts fail, confirm `auth_param` path and passwd file exist.
+- If client cannot connect, check firewall (ufw/iptables) on Squid VM and IP/port.
+- For more advanced ACLs, list hosts, URLs, or regex-based filters.
+
+END exp2.txt
