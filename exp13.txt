@@ -1,0 +1,36 @@
+=== exp13.txt ===
+SL - 2025  |  Experiment 13
+Title: CrypTool — Symmetric & Asymmetric Encryption + Digital Signatures
+
+NOTE
+- CrypTool primarily runs on Windows; use CT-online demos if on Ubuntu. Do not reuse demo keys for production.
+
+PART A — AES (Symmetric)
+1) Open CrypTool (or CT-online AES demo)
+2) Choose AES demo; enter plaintext and a key
+3) Encrypt → observe ciphertext
+4) Decrypt with same key → verify plaintext
+5) Flip one key bit → observe avalanche effect in ciphertext
+
+PART B — RSA (Asymmetric)
+1) Open RSA demo
+2) Choose two primes or have tool generate keypair (1024/2048 demo)
+3) Note N, e (public) and d (private)
+4) Encrypt plaintext with public key; decrypt with private
+5) Verify results match
+
+PART C — Digital Signatures
+1) Hash a message (SHA-256)
+2) Sign the hash with private key
+3) Verify signature with public key
+4) Modify message and show verification fails
+
+RECORD
+- Parameters used (p, q, N, e, d or key lengths)
+- Sample ciphertexts/hashes (non-sensitive)
+- Screenshots of operations
+
+SECURITY NOTE
+- Prefer RSA-2048+ and SHA-256+ for anything beyond a demo
+
+END exp13.txt
