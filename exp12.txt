@@ -1,0 +1,32 @@
+=== exp12.txt ===
+SL - 2025  |  Experiment 12
+Title: MD5 / SHA-1 / SHA-256 / SHA-512 (Ubuntu) — message integrity
+
+1) Prepare a sample file
+echo "This is a demo" > example.txt
+
+2) MD5 (128-bit)
+md5sum example.txt
+
+3) SHA-1 (160-bit)
+sha1sum example.txt
+
+4) Modify file and re-hash
+echo "Changed content" > example.txt
+md5sum example.txt
+sha1sum example.txt
+
+5) Stronger hashes
+sha256sum example.txt
+sha512sum example.txt
+
+6) Save and verify later
+md5sum example.txt  > checksums.md5
+sha1sum example.txt > checksums.sha1
+md5sum -c checksums.md5
+sha1sum -c checksums.sha1
+
+FIREFOX TIP
+- When downloading OS images, vendors publish SHA256 sums — verify with sha256sum.
+
+END exp12.txt
