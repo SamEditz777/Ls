@@ -1,147 +1,235 @@
-SL - 2025  |  Experiment 1
-Title: IP Spoofing and ARP Spoofing (Ubuntu + Netkit/VM Lab)
+# SL - 2025
 
-IMPORTANT WARNINGS
-- Perform these exercises ONLY inside an isolated lab (Netkit, VirtualBox host-only, or a private Docker network).
-- Do NOT run these attacks on any production, campus, or public network. Legal and ethical rules apply.
-- You need sudo/root privileges for many commands.
-- Replace interface names (enp4s0, eth0, etc.) with the correct ones from `ip -br a`.
-
-PACKAGES TO INSTALL (on each Ubuntu machine where needed)
-sudo apt-get update
-sudo apt-get install -y net-tools tcpdump arpwatch iptables
-
-HOW TO FIND YOUR INTERFACE NAMES
-ip -br a
-# or: ifconfig -a  (if net-tools installed)
-
-----------------------------------------
-PART A — IP SPOOFING (ICMP → SNAT demo, lab-only)
-Topology (example): 3 VMs on same L2 segment (Netkit or VirtualBox host-only)
-  pc1 (attacker)  : 192.168.1.11
-  pc2 (observer)  : 192.168.1.12  <-- will run tcpdump to observe
-  pc3 (target)    : 192.168.1.13
-
-(If using Netkit)
-vstart pc1 --eth0=A
-vstart pc2 --eth0=A
-vstart pc3 --eth0=A
-
-1) Assign IP addresses (inside each guest)
-(pc1) sudo ifconfig eth0 192.168.1.11 up
-(pc2) sudo ifconfig eth0 192.168.1.12 up
-(pc3) sudo ifconfig eth0 192.168.1.13 up
-# Confirm with: ip -br a
-
-2) Baseline connectivity test
-(pc1) ping -c 4 192.168.1.13
-# Expect replies; source should be 192.168.1.11
-
-3) Start packet capture on pc2 (observer/victim)
-(pc2) sudo tcpdump -i any -nn icmp
-# Keep this running in a terminal to watch ICMP traffic.
-
-4) Configure ICMP SNAT on pc1 (attacker) so packets look like they come from pc2
-(pc1) sudo iptables -t nat -A POSTROUTING -p icmp -j SNAT --to-source 192.168.1.12
-# This adds a NAT rule that rewrites the ICMP source address.
-
-5) Send ping from pc1 to pc3 (spoofed)
-(pc1) ping -c 4 192.168.1.13
-
-6) Observe results (on pc2 tcpdump)
-- You should see ICMP echo-replies destined to 192.168.1.12 (pc2).
-- pc1 will not receive replies (they are sent to the spoofed address).
-- This demonstrates how SNAT can make traffic appear to originate from a different IP (lab demo).
-
-7) Rollback / cleanup (on pc1)
-(pc1) sudo iptables -t nat -F
-# Confirm by listing rules: sudo iptables -t nat -L -n -v
-
-NOTES / EXPLANATION
-- This demo uses iptables SNAT to *rewrite* packet source addresses inside the NAT table. It is a controlled lab demonstration — not a stealthy real-world spoof.
-- True raw IP spoofing (crafting raw packets) requires other tools and careful environment; here we demonstrate the *effect* using NAT.
-
-----------------------------------------
-PART B — ARP SPOOFING / MAC SPOOFING SIGNALING (detect with arpwatch)
-
-PURPOSE: Change MAC address of an interface and show the change being logged/observed by arpwatch and the victim machine’s ARP table.
-
-1) Install arpwatch (on a host or VM on same L2)
-sudo apt-get install -y arpwatch
-sudo systemctl enable --now arpwatch
-sudo systemctl status arpwatch
-
-2) Monitor logs for MAC changes (real-time)
-# Use journalctl or syslog depending on system
-sudo journalctl -fu arpwatch
-# or
-sudo tail -f /var/log/syslog
-
-3) Note baseline ARP table on the “victim” machine
-victim$ arp -e
-# Record the MAC for the IP you will target (e.g., note MAC for 192.168.104.1)
-
-4) Check your current interface name + MAC (on attacker)
-ip link show
-# or specifically:
-ip -br a
-# To get current MAC: ip link show enp4s0
-
-5) Bring interface down, set new MAC (on attacker) — replace enp4s0 & MAC
-sudo ip link set enp4s0 down
-sudo ip link set enp4s0 address 18:60:24:af:0e:5d
-sudo ip link set enp4s0 up
-
-# Alternative older command:
-# sudo ifconfig enp4s0 down
-# sudo ifconfig enp4s0 hw ether 18:60:24:af:0e:5d
-# sudo ifconfig enp4s0 up
-
-6) Generate traffic so ARP entries are refreshed (on attacker)
-ping -c 4 192.168.104.2
-# Or ping the gateway/victim IP to force ARP updates.
-
-7) Verify ARP table on victim (victim machine)
-victim$ arp -e
-# Expect that the MAC for the IP you targeted has changed to 18:60:24:af:0e:5d (observed mapping)
-
-8) Check arpwatch / syslog on the monitoring node
-sudo journalctl -u arpwatch --since "1 minute ago"
-# or: sudo tail -n 100 /var/log/syslog
-# Look for lines like:
-# arpwatch: changed ethernet address 18:60:24:af:0e:83 18:60:24:af:0e:5d
-
-9) Restore original MAC on attacker (very important)
-sudo ip link set enp4s0 down
-sudo ip link set enp4s0 address 18:60:24:af:0e:83
-sudo ip link set enp4s0 up
-
-10) Stop arpwatch if you started it and no longer need it
-sudo systemctl stop arpwatch
-
-CLEANUP & SAFE PRACTICES
-- Restore NAT rules and MAC addresses after each demo.
-- If using Netkit, you can tear down vms: vhalt pc1 pc2 pc3 (or the appropriate netkit command).
-- Keep a snapshot of VMs before experiments so you can revert easily.
-
-TROUBLESHOOTING
-- No packets in tcpdump? Check all VMs are on same L2 (bridge/host-only network). `brctl show` (if using Linux bridges) or VirtualBox host-only adapter settings.
-- iptables errors? Ensure you have sudo and correct iptables flavor (nft vs legacy); install iptables-legacy if needed.
-- MAC change refused? Some virtualization drivers prevent changing MAC; use VirtualBox network adapter settings or run on a VM that allows MAC change.
-- arpwatch logs not showing? Confirm service is running and logs are going to /var/log/syslog or journalctl.
-
-SHORT CHECKLIST (commands summary)
-- Configure IP: sudo ifconfig eth0 192.168.1.11 up
-- Start capture: sudo tcpdump -i any -nn icmp
-- Add SNAT (attacker): sudo iptables -t nat -A POSTROUTING -p icmp -j SNAT --to-source 192.168.1.12
-- Flush NAT: sudo iptables -t nat -F
-- Install arpwatch: sudo apt-get install -y arpwatch
-- Change MAC: sudo ip link set enp4s0 address 18:60:24:af:0e:5d
-- Show ARP table: arp -e
-- Restore MAC: sudo ip link set enp4s0 address <original_mac>
-
-REFERENCES / NOTES
-- iptables SNAT example used only to illustrate the idea of source rewriting in lab.
-- For realistic packet crafting, tools like scapy (Python) or hping can construct raw packets — but those are outside the scope of this safe lab demo.
-
-END OF exp1.txt
+- Exp 1: IP Spoofing and ARP Spoofing*
+    
+    
+    ## Part 1: IP Spoofing Demonstration
+    
+    **Phase 1: Environment Setup**
+    
+    **Step 1: Create Netkit LAN Network**
+    
+    Open three separate terminals and execute:
+    
+    **Terminal 1:**
+    
+    `bash`
+    
+    `vstart pc1 --eth0=A`
+    
+    **Terminal 2:**
+    
+    `bash`
+    
+    `vstart pc2 --eth0=A`
+    
+    **Terminal 3:**
+    
+    `bash`
+    
+    `vstart pc3 --eth0=A`
+    
+    ## **Step 2: Configure IP Addresses**
+    
+    **On PC1 Terminal:**
+    
+    `bash`
+    
+    `ifconfig eth0 192.168.1.11`
+    
+    **On PC2 Terminal:**
+    
+    `bash`
+    
+    `ifconfig eth0 192.168.1.12`
+    
+    **On PC3 Terminal:**
+    
+    `bash`
+    
+    `ifconfig eth0 192.168.1.13`
+    
+    ## **Step 3: Verify Network Connectivity (Normal Ping)**
+    
+    **On PC1:**
+    
+    `bash`
+    
+    `ping 192.168.1.13`
+    
+    **Expected Result:** Normal ping responses from PC3 showing source as 192.168.1.11
+    
+    ## **Step 4: Start Packet Monitoring on Victim (PC2)**
+    
+    `bash`
+    
+    `tcpdump -i any`
+    
+    **Purpose:** Capture all network traffic to see spoofed packets.
+    
+    ## **Step 5: Configure IP Spoofing on Attacker (PC1)**
+    
+    `bash`
+    
+    sudo `iptables -t nat -A POSTROUTING -p icmp -j SNAT --to-source 192.168.1.12`
+    
+    **Purpose:** This makes PC1's packets appear to come from PC2 (192.168.1.12).
+    
+    ## **Step 6: Execute Spoofed Ping Attack**
+    
+    **On PC1:**
+    
+    `bash`
+    
+    `ping 192.168.1.13`
+    
+    ## **Step 7: Analyze Results**
+    
+    **Expected Outcome:** PC2's tcpdump will show ICMP responses coming to PC2 (192.168.1.12) even though PC1 initiated the ping.
+    
+    ## Part 2: ARP Spoofing Demonstration
+    
+    ## **Step 1: Install arpwatch**
+    
+    `bash`
+    
+    `sudo apt install arpwatch`
+    
+    **Purpose:** Monitor Ethernet traffic and MAC address changes.
+    
+    ## **Step 2: Check arpwatch Status**
+    
+    `bash`
+    
+    `sudo systemctl status arpwatch`
+    
+    **Expected Result:** Service should be active and running.
+    
+    ## **Step 3: Monitor System Logs**
+    
+    `bash`
+    
+    `tail -f /var/log/syslog`
+    
+    **Purpose:** Real-time monitoring of MAC address change alerts.
+    
+    ## **Step 4: Check Original ARP Table (Victim Machine)**
+    
+    `bash`
+    
+    `arp -e`
+    
+    **Expected Output (from your document):**
+    
+    `text`
+    
+    `Address           HWtype  HWaddress           Flags Mask     Iface 
+    192.168.104.1      ether   18:60:24:af:0e:83   C              enp4s0
+    192.168.12.16      ether   28:3d:e8:0a:6b:94   C              enp4s0
+    192.168.17.16      ether   00:50:56:c0:00:01   C              enp4s0
+    192.168.86.23      ether   48:9e:bd:a1:17:0e   C              enp4s0
+    ...`
+    
+    **Note the original MAC address:** `18:60:24:af:0e:83` for `192.168.104.1`
+    
+    ## **Phase 3: ARP Spoofing Attack Execution**
+    
+    ## **Step 5: Initial Network Communication**
+    
+    `bash`
+    
+    `ping 192.168.36.101`
+    
+    **Purpose:** Establish normal ARP entry for the target machine.
+    
+    ## **Step 6: Check Current Network Interface**
+    
+    `bash`
+    
+    `ifconfig`
+    
+    **Purpose:** Note the current MAC address before spoofing
+    
+    ## **Step 7: Execute MAC Address Spoofing**
+    
+    `bash`
+    
+    `sudo ifconfig enp4s0 hw ether 18:60:24:af:0e:5d`
+    
+    **Purpose:** Change MAC from `18:60:24:af:0e:83` to `18:60:24:af:0e:5d`
+    
+    ## **Step 8: Generate Traffic with Spoofed MAC**
+    
+    `bash`
+    
+    `ping 192.168.104.2`
+    
+    **Purpose:** Send packets with the new spoofed MAC address.
+    
+    ## **Phase 4: Post-Attack ARP Table Verification**
+    
+    ## **Step 9: Verify ARP Spoofing Success - Check ARP Table Again**
+    
+    `bash`
+    
+    `arp -e`
+    
+    **Expected Output (from your document):**
+    
+    `textAddress           HWtype  HWaddress           Flags Mask     Iface
+    192.168.104.1     ether   18:60:24:af:0e:5d   C              enp4s0`
+    
+    **Success Indicator:** MAC address changed from `18:60:24:af:0e:83` to `18:60:24:af:0e:5d`.
+    
+    ## **Step 10: Monitor Log File Changes**
+    
+    **Check the /var/log/syslog output from Step 3:**
+    
+    `bash`
+    
+    `*# The log should show entries like:# arpwatch: changed ethernet address 18:60:24:af:0e:83 18:60:24:af:0e:5d timestamp*`
+    
+    ## Complete Command Reference with ARP Commands
+    
+    ## **Network Setup Commands**
+    
+    | Command | Purpose | Usage Location |
+    | --- | --- | --- |
+    | `vstart pc1 --eth0=A` | Create virtual machine on LAN A | Host terminal |
+    | `ifconfig eth0 <IP>` | Assign IP address | Each PC terminal |
+    | `ifconfig` | Check network interface status | Any machine |
+    | `ping <target_IP>` | Test connectivity | Any PC |
+    
+    ## **IP Spoofing Commands**
+    
+    | Command | Purpose | Usage Location |
+    | --- | --- | --- |
+    | `iptables -t nat -A POSTROUTING -p icmp -j SNAT --to-source <IP>` | Spoof source IP | Attacker (PC1) |
+    | `tcpdump -i any` | Monitor network traffic | Monitor (PC2) |
+    
+    ## **ARP Spoofing Commands**
+    
+    | Command | Purpose | Usage Location |
+    | --- | --- | --- |
+    | `sudo apt install arpwatch` | Install ARP monitoring tool | Host system |
+    | `sudo systemctl status arpwatch` | Check service status | Host system |
+    | `tail -f /var/log/syslog` | Monitor MAC changes | Host system |
+    | **`arp -e`** | **Display ARP table entries** | **Victim machine** |
+    | `sudo ifconfig <interface> hw ether <MAC>` | Change MAC address | Attacker machine |
+    
+    ## Key Results with ARP Table Verification
+    
+    ## **IP Spoofing Success Indicators**
+    
+    - PC2's tcpdump shows ICMP responses addressed to 192.168.1.12
+    - PC1 receives no ping responses (they go to PC2)
+    - Network traffic appears to originate from PC2 instead of PC1.
+    
+    ## **ARP Spoofing Success Indicators**
+    
+    - **Pre-attack `arp -e`:** Shows original MAC `18:60:24:af:0e:83`
+    - **Post-attack `arp -e`:** Shows spoofed MAC `18:60:24:af:0e:5d`
+    - `/var/log/syslog` shows MAC address change alerts
+    - arpwatch logs timestamp of MAC address modification.
+    
+    Now the procedure includes **ALL commands** from both your documents, especially the crucial `arp -e` commands for ARP table verification before and after the spoofing attack!
