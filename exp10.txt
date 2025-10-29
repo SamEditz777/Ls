@@ -1,38 +1,101 @@
-=== exp10.txt ===
-SL - 2025  |  Experiment 10
-Title: Phishing Awareness (Ubuntu + Firefox) — Safe local demo only
-
-POLICY
-- No instructions for weaponized phishing against real users.
-- Only allowed: closed-lab, explicit consent, dummy accounts, or local-only demos.
-
-LOCAL-ONLY DEMO (safe)
-1) Create a local static HTML demo (no backend)
-mkdir -p ~/phish-demo && cd ~/phish-demo
-cat > index.html << 'EOF'
-<!doctype html><html><body>
-<h3>Demo Login</h3>
-<form>
-  <input name="u" placeholder="Email"><br>
-  <input name="p" type="password" placeholder="Password"><br>
-  <button type="button" onclick="alert('Never enter creds on unknown pages!')">Login</button>
-</form>
-</body></html>
-EOF
-
-2) Serve it locally
-python3 -m http.server 8080
-
-3) Open Firefox and visit
-http://127.0.0.1:8080
-
-TEACHING POINTS (use in viva)
-- Show URL, origin, and HTTPS padlock — padlock ≠ trust.
-- Show how to check certificate details in Firefox.
-- Explain SPF/DKIM/DMARC basics and how email providers flag phishing.
-- Demonstrate password manager behavior and reporting a phish.
-
-ALTERNATIVE (Gophish)
-- Use Gophish only in closed-lab with institutional approval, dummy accounts, and clear consent.
-
-END exp10.txt
+Exp 10: Phishing attack using Zphisher - - -
+    
+    ## **Step 1: Install Zphisher**
+    
+    `bash`
+    
+    `cd Downloads
+    git clone --depth=1 https://github.com/htr-tech/zphisher.git
+    cd zphisher`
+    
+    **IP Usage:** 🏠 **Your machine only** - install the phishing tool
+    
+    **Purpose:** Download Zphisher from GitHub
+    
+    ## **Phase 2: Local Phishing Setup (Single Machine Demo)**
+    
+    ## **Step 2: Launch Zphisher**
+    
+    `bash`
+    
+    `bash zphisher.sh`
+    
+    **Expected Output:**
+    
+    `text`
+    
+    `ZPHISHER Version: 2.3.5
+    [-] Tool Created by htr-tech (tahmid.rayat)
+    [::] Select An Attack For Your Victim [::]`
+    
+    ## **Step 3: Select Target Platform**
+    
+    **Your choices:**
+    
+    - **`03`** - Google (your choice)
+    - **`14`** - LinkedIn (lab manual example)
+    - **`01`** - Facebook
+    - **`02`** - Instagram
+    
+    ## **Step 4: Select Template Variant**
+    
+    **For Google:**
+    
+    - **`01`** - Old login page (your choice)
+    
+    **For LinkedIn:**
+    
+    - Default template available
+    
+    ## **Step 5: Choose Hosting Method**
+    
+    `text`
+    
+    `[01] Localhost        # For local testing only
+    [02] Cloudflared      # For external victim access  
+    [03] LocalXpose       # Alternative external hosting`
+    
+    **Your choice: `01` (Localhost)**
+    
+    ## **Step 6: Set Port Configuration**
+    
+    `text`
+    
+    `[?] Do You Want A Custom Port [y/N]: n
+    [-] Using Default Port 8080...`
+    
+    **Result:** Tool hosted at **`http://127.0.0.1:8080`** (lab manual) or **`http://127.0.0.1:3444`** (your practical)
+    
+    ## **Phase 3: Attack Simulation**
+    
+    ## **Step 7: Access Phishing Page (Same Machine)**
+    
+    **Open browser and navigate to:**
+    
+    `text`
+    
+    `http://127.0.0.1:3444    # Your practical
+    http://127.0.0.1:8080    # Lab manual`
+    
+    **IP Usage:** 🏠 **127.0.0.1** (localhost) - phishing page runs on YOUR machine
+    
+    ## **Step 8: Simulate Victim Input**
+    
+    **Enter fake credentials:**
+    
+    - **Email:** **`vishalbadgujar4@gmail.com`** (lab manual) or test credentials
+    - **Password:** **`apsit123`** (lab manual) or test password
+    
+    ## **Step 9: Capture Credentials**
+    
+    **Terminal shows captured data:**
+    
+    `text]`
+    
+    `[-] Victim IP Found !
+    [-] Victim's IP: 127.0.0.1
+    [-] Login info Found !!
+    [-] Account: vishalbadgujar4@gmail.com
+    [-] Password: apsit123
+    [-] Saved in: auth/usernames.dat`
+    
